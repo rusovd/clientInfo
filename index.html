@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>ClientData</title>
+
+    <link rel="stylesheet" href="./ppjson/pretty-print-json.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+      crossorigin="anonymous"
+    ></script>
+    <script src="./ppjson/pretty-print-json.min.js"></script>
+
+    <script src="udata.js"></script>
+  </head>
+  <body>
+    <pre id="example"></pre>
+
+    <script>
+      //http://api.db-ip.com/addrinfo?api_key=bc2ab711d740d7cfa6fcb0ca8822cb327e38844f&addr=188.115.184.117
+      const userData = {
+        timeOpened: new Date(),
+        geo: {},
+        timezone: new Date().getTimezoneOffset() / 60,
+        location: window.location,
+        host: window.location.host,
+        hostname: window.location.hostname,
+        pageOn: window.location.pathname,
+        referrer: document.referrer,
+        previousSites: history.length,
+        browserName: navigator.appName,
+        browserEngine: navigator.product,
+        browserVersion1a: navigator.appVersion,
+        browserVersion1b: navigator.userAgent,
+        browserLanguage: navigator.language,
+        browserOnline: navigator.onLine,
+        browserPlatform: navigator.platform,
+        javaEnabled: navigator.javaEnabled(),
+        dataCookiesEnabled: navigator.cookieEnabled,
+        dataCookies1: document.cookie,
+        dataCookies2: decodeURIComponent(document.cookie.split(';')),
+        dataStorage: localStorage,
+
+        sizeScreenW: screen.width,
+        sizeScreenH: screen.height,
+        sizeDocW: document.width,
+        sizeDocH: document.height,
+        sizeInW: innerWidth,
+        sizeInH: innerHeight,
+        sizeAvailW: screen.availWidth,
+        sizeAvailH: screen.availHeight,
+        scrColorDepth: screen.colorDepth,
+        scrPixelDepth: screen.pixelDepth
+      };
+
+      const getCurrentPosition = (options = {}) => {
+        return new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, options);
+        });
+      };
+
+      const fetchCoordinates = async () => {
+        try {
+          const { coords } = await getCurrentPosition();
+          const {
+            latitude,
+            longitude,
+            accuracy,
+            altitudeAccuracy,
+            heading,
+            speed,
+            timestamp
+          } = coords;
+          userData.geo.latitude = latitude;
+          userData.geo.longitude = longitude;
+          userData.geo.accuracy = accuracy;
+          userData.geo.altitudeAccuracy = altitudeAccuracy;
+          userData.geo.heading = heading;
+          userData.geo.speed = speed;
+          userData.geo.timestamp = timestamp;
+          return userData;
+        } catch (error) {
+          userData.geo = error;
+          return userData;
+        }
+      };
+
+      const postData = async data => {
+        const rawResponse = await fetch('https://httpbin.org/post', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        const content = await rawResponse.json();
+
+        return content.data;
+      };
+
+      const fetchIPInfo = async () => {
+        const rawResponse = await fetch('http://jsonip.com?callback=?', {
+          method: 'GET',
+          mode: 'no-cors',
+          headers: {
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+            'Content-Type': 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'max-age=0',
+            Connection: 'keep-alive',
+            Host: 'gd.geobytes.com',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36'
+          }
+        });
+        const content = await rawResponse.json();
+
+        return content.address;
+      };
+
+      $(() => {
+        // TEMPORARY
+        $.getJSON('https://api.ipify.org?format=jsonp&callback=?', data => {
+          userData.ip = data.ip;
+        });
+
+        $.getJSON('https://api.ipregistry.co/?key=wd18ijlp0ge2f0', data => {
+          userData.IPRegistryInfo = data;
+        });
+
+        $.getJSON('http://gd.geobytes.com/GetCityDetails?callback=?', data => {
+          userData.Geobytes = data;
+        });
+        // TEMPORARY
+
+        fetchCoordinates()
+          .then(data => postData(data))
+          .then(data =>
+            $('#example').html(prettyPrintJson.toHtml(JSON.parse(data)))
+          );
+      });
+    </script>
+  </body>
+</html>
